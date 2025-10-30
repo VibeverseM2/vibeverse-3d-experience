@@ -1,24 +1,14 @@
 {
-  "extends": "../../../tsconfig.json",
   "compilerOptions": {
-    "noImplicitAny": true,
-    "module": "es2022",
-    "target": "es2022",
-    "jsx": "react",
-    "lib": ["es2022", "dom"],
-    "sourceMap": true,
+    "target": "ES2020",
+    "module": "CommonJS",
+    "rootDir": "src",
+    "outDir": "dist",
+    "strict": true,
     "esModuleInterop": true,
-    "allowJs": true,
-    "strictNullChecks": true,
-    "allowSyntheticDefaultImports": true,
-    "moduleResolution": "node",
-    "resolveJsonModule": true,
-    "downlevelIteration": true,
-    "noEmit": true,
-    "baseUrl": ".",
-    "incremental": true,
+    "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true
   },
-  "include": ["src/**/*", "test/**/*", "./build.ts"],
-  "exclude": ["**/build/*", "types-src"]
+  "include": ["src"],
+  "exclude": ["node_modules", "dist"]
 }

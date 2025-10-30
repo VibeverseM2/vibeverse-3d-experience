@@ -85,8 +85,8 @@ function toSpawnConfiguration(
 
 const holder = Networked3dWebExperienceClient.createFullscreenHolder();
 const app = new Networked3dWebExperienceClient(holder, {
-  sessionToken: "CiQA6WM3C4I4UbDxDRio/SU7XquCAalJH8d/F95xED7wIAwJQRwSwgEAEBuzYTnJ622d2jz7diT3DW1GJZD0CL4RPGj8T63TeSYfJzvH9Vkyay5ZW4oPh0w9+bbgZJZh5yTLdUEp81o836e+ZkkuSV+DvqBtUjqki6WrYoSU1hvZd954p65TsqHNX2UAG9rLEy/GJd01/lZ1I+1YlXPkw4wbVoTF75tcokPFXYISOb6regrgKm6oW4ziuXgJAQVIZo6jwYTBKrWasL+g8ZXeRCHT1EkfBGztpimzV6C1Gtky7lkavi8Wyb9z2A==",
-  userNetworkAddress: "wss://session.msquared.world/v1/worlds/nathantest-6e8649/nathantest-deb29c",
+  sessionToken: (window as any).SESSION_TOKEN,
+  userNetworkAddress: (window as any).NETWORK_URL,
   enableChat: true,
   animationConfig: {
     airAnimationFileUrl,
@@ -95,7 +95,7 @@ const app = new Networked3dWebExperienceClient(holder, {
     sprintAnimationFileUrl,
     doubleJumpAnimationFileUrl,
   },
-  mmlDocuments: { example: { url: `${protocol}//${host}/mml-documents/example-mml.html` } },
+  mmlDocuments: { example: { url: "https://public.mml.io/rgb-cubes.html" } },
   environmentConfiguration: {
     skybox: useSkybox
       ? {
