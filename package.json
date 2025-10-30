@@ -24,7 +24,8 @@
   "workspaces": [
     "packages/*",
     "packages/deltanet/*",
-    "example/**"
+    "example/**",
+    "projects/**"
   ],
   "devDependencies": {
     "depcheck": "1.4.7",
