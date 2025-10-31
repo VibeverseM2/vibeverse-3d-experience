@@ -82,50 +82,21 @@ function toSpawnConfiguration(
   };
 }
 
+const INITIAL_CONFIG = (window as any).INITIAL_CONFIG || {};
 
 const holder = Networked3dWebExperienceClient.createFullscreenHolder();
 const app = new Networked3dWebExperienceClient(holder, {
+  ...INITIAL_CONFIG,
   sessionToken: (window as any).SESSION_TOKEN,
   userNetworkAddress: (window as any).NETWORK_URL,
-  enableChat: true,
-  animationConfig: {
-    airAnimationFileUrl,
-    idleAnimationFileUrl,
-    jogAnimationFileUrl,
-    sprintAnimationFileUrl,
-    doubleJumpAnimationFileUrl,
-  },
-  mmlDocuments: { example: { url: "https://public.mml.io/rgb-cubes.html" } },
-  environmentConfiguration: {
-    skybox: useSkybox
-      ? {
-          hdrJpgUrl,
-        }
-      : undefined,
-    fog: {
-      fogFar: 0,
-    },
-  },
-  avatarConfiguration: {
-    allowCustomAvatars: true,
-    availableAvatars: [
-      {
-        name: "bot",
-        meshFileUrl: "/assets/models/bot.glb",
-      },
-    ],
-  },
-  allowOrbitalCamera: true,
+  worldId: (window as any).WORLD_ID,
   loadingScreen: {
     background: "#424242",
     color: "#ffffff",
     backgroundImageUrl: loadingBackground,
     backgroundBlurAmount: 12,
-    title: "3D Web Experience",
-    subtitle: "Powered by Metaverse Markup Language",
-  },
-  spawnConfiguration: {
-    enableRespawnButton: true,
+    title: "VibeVerse",
+    subtitle: "Powered by mash.space and MSquared Web Worlds",
   },
   onServerBroadcast: (broadcast: { broadcastType: string; payload: any }) => {
       if (broadcast.broadcastType === WorldConfigUpdateBroadcastType) {

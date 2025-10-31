@@ -2,6 +2,13 @@ import express from 'express';
 import { worldRouter } from './routes/world';
 import path from 'path';
 
+// Load environment variables from .env file
+try {
+  require('dotenv').config();
+} catch (e) {
+  // dotenv not available, environment variables should be set another way
+}
+
 const app = express();
 app.use(express.json());
 

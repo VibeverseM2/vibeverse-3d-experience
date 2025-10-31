@@ -91,6 +91,7 @@ export type MMLDocumentState = {
 export type Networked3dWebExperienceClientConfig = {
   userNetworkAddress: string;
   sessionToken: string;
+  worldId: string;
   authToken?: string | null;
   chatVisibleByDefault?: boolean;
   userNameToColorOptions?: StringToHslOptions;
@@ -815,6 +816,7 @@ export class Networked3dWebExperienceClient {
             }
           }
           docState.dispose();
+          this.saveMMLDocumentsToServer(this.config.worldId);
         },
         onMove: (existingFrame: HTMLElement, mmlDocument: PositionAndRotation) => {
           console.log("Root.onMove", { existingFrame, mmlDocument });
@@ -825,6 +827,7 @@ export class Networked3dWebExperienceClient {
             existingFrame.setAttribute("rx", mmlDocument.rotation.x.toString());
             existingFrame.setAttribute("ry", mmlDocument.rotation.y.toString());
             existingFrame.setAttribute("rz", mmlDocument.rotation.z.toString());
+            this.saveMMLDocumentsToServer(this.config.worldId);
             resolve();
           });
         },
@@ -834,6 +837,8 @@ export class Networked3dWebExperienceClient {
             const existingSet = new Map(mmlProgressManager.loadingDocuments);
             let newDoc;
             this.mmlDocumentStates[Math.random().toString()] = this.createMMLDocument(mmlDocument);
+            this.saveMMLDocumentsToServer(this.config.worldId);
+            // trigger update of world
             const newSet = new Map(mmlProgressManager.loadingDocuments);
             for (const [key, value] of newSet) {
               if (!existingSet.has(key)) {
@@ -869,6 +874,30 @@ export class Networked3dWebExperienceClient {
       });
       mmlProgressManager.setInitialLoad(true);
     });
+  }
+
+  // Function to save MML document states to server
+  private async saveMMLDocumentsToServer(worldId: string): Promise<void> {
+    try {
+      const mmlDocs = Object.entries(this.mmlDocumentStates).map(([key, state]) => state.config);
+      console.log("Saving MML documents to server:", mmlDocs);
+      const response = await fetch(`http://localhost:3000/world/${worldId}/objects`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(mmlDocs),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      console.log('MML documents saved successfully to server');
+    } catch (error) {
+      console.error('Failed to save MML documents to server:', error);
+      throw error;
+    }
   }
 
   private createMMLDocument(mmlDocConfig: MMLDocumentConfiguration): MMLDocumentState {

@@ -71,17 +71,15 @@ export class MMLEditingMode {
     this.controlsPanel.appendChild(this.continuousCheckbox);
 
     const urls: Array<string> = [
-      "http://localhost:8080/assets/static-mml.html",
-      "http://localhost:8080/assets/static-mml-2.html",
-      "http://localhost:8080/assets/static-mml-3.html",
-      "http://localhost:8080/assets/static-mml-4.html",
-      "https://mmlstorage.com/l4sPd6/1738665435978.html",
+      "http://localhost:8080/assets/models/hat.glb",
+      "http://localhost:8080/assets/models/bot.glb",
+      "http://localhost:8080/assets/models/duck.glb"
     ];
     for (const url of urls) {
       const docUrl = url;
       const documentButton = document.createElement("button");
       documentButton.addEventListener("click", () => {
-        this.setGhostUrl(docUrl);
+        this.setGhostUrl(`http://localhost:3000/world/test/object/${encodeURIComponent(docUrl)}/mml`);
       });
       documentButton.textContent = url;
       this.controlsPanel.appendChild(documentButton);
