@@ -14,6 +14,7 @@ import {
   RemoteDocumentWrapper,
 } from "@mml-io/mml-web";
 import { ThreeJSGraphicsAdapter, ThreeJSResourceManager } from "@mml-io/mml-web-threejs";
+import { ControlsPanel } from "@mml-io/vibeverse-editor";
 import { Group, Material, Mesh, Object3D, PerspectiveCamera, Scene } from "three";
 
 import { MMLDocumentConfiguration, MMLDocumentState } from "./Networked3dWebExperienceClient";
@@ -38,90 +39,35 @@ export class MMLEditingMode {
   public group: Group;
   private ghostMMLScene: IMMLScene<ThreeJSGraphicsAdapter>;
   private placer: ThreeJSMMLPlacer;
-  private controlsPanel: HTMLDivElement;
-  private continuousCheckbox: HTMLInputElement;
+  private controlsPanel: ControlsPanel;
 
-  private editButton: HTMLButtonElement;
   private currentGhost: null | {
     src: string;
     remoteDocumentWrapper: RemoteDocumentWrapper;
   } = null;
   private waitingForPlacement: boolean = false;
-  private existingDocumentsPanel: HTMLDivElement;
 
   constructor(private config: MMLEditingModeConfig) {
     this.group = new Group();
 
-    this.controlsPanel = document.createElement("div");
-    this.controlsPanel.style.position = "fixed";
-    this.controlsPanel.style.display = "flex";
-    this.controlsPanel.style.flexDirection = "column";
-    this.controlsPanel.style.top = "0";
-    this.controlsPanel.style.left = "0";
-    this.controlsPanel.style.padding = "20px";
-    this.editButton = document.createElement("button");
-    this.editButton.textContent = "Edit existing";
-    this.editButton.addEventListener("click", () => {
-      this.placer.toggleEditMode();
+    // Create controls panel with extracted logic
+    this.controlsPanel = new ControlsPanel({
+      onEditExisting: () => {
+        this.placer.toggleEditMode();
+      },
+      onCreateDocument: (url: string) => {
+        this.setGhostUrl(`http://localhost:3000/world/test/object/${encodeURIComponent(url)}/mml`);
+      },
+      onRemoveDocument: (docState: MMLDocumentState) => {
+        this.config.onRemove(docState);
+      },
+      onSelectDocument: (frame: any) => {
+        this.placer.selectFrameToEdit(frame);
+      },
+      documentStates: this.config.mmlDocumentStates,
+      iframeBody: this.config.iframeBody,
+      currentGhost: this.currentGhost
     });
-    this.controlsPanel.appendChild(this.editButton);
-
-    this.continuousCheckbox = document.createElement("input");
-    this.continuousCheckbox.setAttribute("type", "checkbox");
-    this.controlsPanel.appendChild(this.continuousCheckbox);
-
-    const urls: Array<string> = [
-      "http://localhost:8080/assets/models/hat.glb",
-      "http://localhost:8080/assets/models/bot.glb",
-      "http://localhost:8080/assets/models/duck.glb"
-    ];
-    for (const url of urls) {
-      const docUrl = url;
-      const documentButton = document.createElement("button");
-      documentButton.addEventListener("click", () => {
-        this.setGhostUrl(`http://localhost:3000/world/test/object/${encodeURIComponent(docUrl)}/mml`);
-      });
-      documentButton.textContent = url;
-      this.controlsPanel.appendChild(documentButton);
-    }
-
-    const title = document.createElement("h1");
-    title.textContent = "Existing documents";
-    this.controlsPanel.appendChild(title);
-    this.existingDocumentsPanel = document.createElement("div");
-    this.existingDocumentsPanel.style.display = "flex";
-    this.existingDocumentsPanel.style.flexDirection = "column";
-    this.controlsPanel.appendChild(this.existingDocumentsPanel);
-
-    const mutationObserver = new MutationObserver(() => {
-      this.existingDocumentsPanel.innerHTML = "";
-      for (const [key, child] of Object.entries(this.config.mmlDocumentStates)) {
-        const frame = child.source.remoteDocumentWrapper.remoteDocument;
-        if (frame !== this.currentGhost?.remoteDocumentWrapper.remoteDocument) {
-          const docRow = document.createElement("div");
-          docRow.style.display = "flex";
-          const documentButton = document.createElement("button");
-          console.log("frame", frame);
-          documentButton.textContent = child.config.url;
-          documentButton.addEventListener("click", () => {
-            this.placer.selectFrameToEdit(frame);
-          });
-          docRow.appendChild(documentButton);
-          const removeButton = document.createElement("button");
-          removeButton.textContent = "Remove";
-          removeButton.addEventListener("click", () => {
-            this.config.onRemove(child);
-          });
-          docRow.appendChild(removeButton);
-          this.existingDocumentsPanel.appendChild(docRow);
-        }
-      }
-    });
-    mutationObserver.observe(this.config.iframeBody, {
-      childList: true,
-    });
-
-    document.body.appendChild(this.controlsPanel);
 
     const cube = new Group();
     this.group.add(cube);
@@ -224,7 +170,7 @@ export class MMLEditingMode {
       keyInputManager: this.config.keyInputManager,
       placementGhostRoot: cube,
       selectedEditFrame: (mElement: RemoteDocument) => {
-        this.setGhostUrl(mElement.documentAddress);
+        this.setGhostUrl((mElement as any).documentAddress);
       },
       updatePosition: (
         positionAndRotation: PositionAndRotation | null,
@@ -278,7 +224,7 @@ export class MMLEditingMode {
               })
               .then(() => {
                 this.waitingForPlacement = false;
-                if (!this.continuousCheckbox.checked) {
+                if (!this.controlsPanel.isContinuous) {
                   this.clearGhost();
                 }
               });
@@ -292,6 +238,7 @@ export class MMLEditingMode {
     if (this.currentGhost !== null) {
       this.currentGhost.remoteDocumentWrapper.remoteDocument.remove();
       this.currentGhost = null;
+      this.controlsPanel.updateCurrentGhost(this.currentGhost);
     }
   }
 
@@ -319,10 +266,12 @@ export class MMLEditingMode {
       src: url,
       remoteDocumentWrapper,
     };
+    this.controlsPanel.updateCurrentGhost(this.currentGhost);
   }
 
   dispose() {
     this.placer.dispose();
+    this.controlsPanel.dispose();
   }
 
   update() {

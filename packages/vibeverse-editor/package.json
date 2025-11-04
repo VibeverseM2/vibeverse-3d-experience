@@ -1,0 +1,21 @@
+{
+  "name": "@mml-io/vibeverse-editor",
+  "version": "0.1.0",
+  "description": "Editor UI components for VibeVerse 3D experience",
+  "main": "build/index.js",
+  "types": "build/index.d.ts",
+  "scripts": {
+    "build": "tsx ./build.ts --build",
+    "dev": "tsx ./build.ts --watch"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^20.11.25",
+    "esbuild": "^0.21.5",
+    "typescript": "^5.5.4"
+  },
+  "peerDependencies": {},
+  "files": [
+    "build/**/*"
+  ]
+}

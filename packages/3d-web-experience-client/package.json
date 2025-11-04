@@ -23,6 +23,7 @@
     "@mml-io/3d-web-user-networking": "^0.24.2",
     "@mml-io/mml-web-threejs": "^0.22.0",
     "@mml-io/mml-web": "0.22.0",
+    "@mml-io/vibeverse-editor": "^0.1.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "three": "0.180.0"
