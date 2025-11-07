@@ -8,7 +8,9 @@
     "build": "tsx ./build.ts --build",
     "dev": "tsx ./build.ts --watch"
   },
-  "dependencies": {},
+  "dependencies": {
+    "three": "0.180.0"
+  },
   "devDependencies": {
     "@types/node": "^20.11.25",
     "esbuild": "^0.21.5",

@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { WorldConfig } from '../types/world';
+import { fetchRemoteWithAuth, postRemoteWithAuth } from '../helpers/api';
 import https from 'https';
 import http from 'http';
 import fs from 'fs/promises';
@@ -9,10 +10,9 @@ export const worldRouter = Router();
 
 const MSQUARED_WEBWORLDS_PROJECT = process.env.MSQUARED_WEBWORLDS_PROJECT || 'vibeverse-custom-df556d';
 const MSQUARED_WEBWORLDS_API_BASE = process.env.MSQUARED_WEBWORLDS_API_BASE || 'https://api.msquared.io/v1/worlds/';
-const MSQUARED_WEBWORLDS_API_KEY = process.env.MSQUARED_WEBWORLDS_API_KEY || ''
+const MSQUARED_WEBWORLDS_API_KEY = process.env.MSQUARED_WEBWORLDS_API_KEY || '';
 
-// In-memory storage for GLB files
-const glbCache = new Map<string, Buffer>();
+
 
 // Fetch world configuration (session token and network URL) from remote source
 async function fetchWorldConfig(worldId: string): Promise<{ sessionToken: string; networkUrl: string }> {
@@ -77,6 +77,7 @@ function sanitizeConfig(parsedConfig: any): any {
 
 
 function translateConfig(initialConfig: any): any {
+  console.log(initialConfig);
   return {
     worldId: initialConfig.name,
     enableChat: initialConfig.chatConfiguration.enabled,
@@ -86,6 +87,7 @@ function translateConfig(initialConfig: any): any {
     avatarConfiguration: initialConfig.avatarConfiguration,
   };
 }
+
 
 
 
@@ -112,6 +114,7 @@ worldRouter.get('/:worldId/web', async (req: Request, res: Response) => {
     
     const { sessionToken, networkUrl } = await fetchWorldConfig(worldId);
     const initialConfig = translateConfig(parsedConfig);
+    console.log(initialConfig);
     const htmlContent = await loadAndHydrateHtml(sessionToken, networkUrl, worldId, initialConfig);
 
     res.setHeader('Content-Type', 'text/html');
@@ -121,52 +124,7 @@ worldRouter.get('/:worldId/web', async (req: Request, res: Response) => {
   // }
 });
 
-// GET /world/:worldId/object/:objectUrl/mml -> fetches GLB from objectUrl and stores it
-worldRouter.get('/:worldId/object/:objectUrl/mml', async (req: Request, res: Response) => {
-  try {
-    const { worldId, objectUrl } = req.params;
 
-    // Return the new GLB URL
-    const glbUrl = `http://localhost:3000/world/${worldId}/object/${encodeURIComponent(objectUrl)}/glb`;
-
-    const mmlContent = `<m-model src="${glbUrl}"></m-model>`;
-
-    res.setHeader('Content-Type', 'text/html');
-    return res.send(mmlContent);
-  } catch (err) {
-    return res.status(502).json({ error: 'Failed to fetch and store GLB file' });
-  }
-});
-
-// GET /world/:worldId/object/:objectUrl/glb -> serves the stored GLB file
-worldRouter.get('/:worldId/object/:objectUrl/glb', async (req: Request, res: Response) => {
-  try {
-    const { worldId, objectUrl } = req.params;
-
-    // Create a cache key combining worldId and objectUrl
-    const cacheKey = `${worldId}:${objectUrl}`;
-
-    // Check if GLB data is already cached
-    let glbData = glbCache.get(cacheKey);
-
-    if (!glbData) {
-      // Decode the URL-encoded objectUrl and fetch if not cached
-      const decodedObjectUrl = decodeURIComponent(objectUrl);
-      
-      // Fetch the GLB file from the decoded URL
-      glbData = await internal.fetchRemoteBinary(decodedObjectUrl);
-      
-      // Store it in memory cache
-      glbCache.set(cacheKey, glbData);
-    }
-
-    res.setHeader('Content-Type', 'model/gltf-binary');
-    res.setHeader('Content-Length', glbData.length);
-    return res.send(glbData);
-  } catch (err) {
-    return res.status(502).json({ error: 'Failed to fetch GLB file' });
-  }
-});
 
 // POST /world/:worldId/objects -> updates webworld config
 worldRouter.post('/:worldId/objects', async (req: Request, res: Response) => {
@@ -257,18 +215,22 @@ export function fetchRemoteBinary(url: string): Promise<Buffer> {
   });
 }
 
-// Helper: fetch remote URL with authorization header
-export function fetchRemoteWithAuth(url: string): Promise<string> {
+// Helper: fetch remote JSON data with headers
+export function fetchRemoteJson(url: string, headers: { [key: string]: string } = {}): Promise<any> {
   return new Promise((resolve, reject) => {
     const lib = url.startsWith('https') ? https : http;
-    const options = {
-      headers: {
-        'Authorization': `Bearer ${MSQUARED_WEBWORLDS_API_KEY}`
-      }
-    };
+    const parsedUrl = new URL(url);
     
+    const options = {
+      hostname: parsedUrl.hostname,
+      port: parsedUrl.port,
+      path: parsedUrl.pathname + parsedUrl.search,
+      method: 'GET',
+      headers: headers
+    };
+
     lib
-      .get(url, options, (resp) => {
+      .request(options, (resp) => {
         if (resp.statusCode && resp.statusCode >= 400) {
           reject(new Error('Bad status code: ' + resp.statusCode));
           resp.resume();
@@ -277,43 +239,60 @@ export function fetchRemoteWithAuth(url: string): Promise<string> {
         resp.setEncoding('utf8');
         let data = '';
         resp.on('data', (chunk) => (data += chunk));
-        resp.on('end', () => resolve(data));
+        resp.on('end', () => {
+          try {
+            const jsonData = JSON.parse(data);
+            resolve(jsonData);
+          } catch (e) {
+            reject(new Error('Failed to parse JSON response'));
+          }
+        });
       })
-      .on('error', reject);
+      .on('error', reject)
+      .end();
   });
 }
 
-// Helper: POST data to remote URL with authorization header
-export function postRemoteWithAuth(url: string, data: string): Promise<string> {
+// Helper: post JSON data to remote URL with headers
+export function postRemoteJson(url: string, data: any, headers: { [key: string]: string } = {}): Promise<any> {
   return new Promise((resolve, reject) => {
     const lib = url.startsWith('https') ? https : http;
-    const urlObj = new URL(url);
+    const parsedUrl = new URL(url);
+    const postData = JSON.stringify(data);
+    
     const options = {
-      hostname: urlObj.hostname,
-      port: urlObj.port,
-      path: urlObj.pathname + urlObj.search,
+      hostname: parsedUrl.hostname,
+      port: parsedUrl.port,
+      path: parsedUrl.pathname + parsedUrl.search,
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${MSQUARED_WEBWORLDS_API_KEY}`,
-        'Content-Type': 'application/json',
-        'Content-Length': Buffer.byteLength(data)
+        'Content-Length': Buffer.byteLength(postData),
+        ...headers
       }
     };
-    
-    const req = lib.request(options, (resp) => {
-      if (resp.statusCode && resp.statusCode >= 400) {
-        reject(new Error('Bad status code: ' + resp.statusCode));
-        resp.resume();
-        return;
-      }
-      resp.setEncoding('utf8');
-      let responseData = '';
-      resp.on('data', (chunk) => (responseData += chunk));
-      resp.on('end', () => resolve(responseData));
-    });
-    
-    req.on('error', reject);
-    req.write(data);
+
+    const req = lib
+      .request(options, (resp) => {
+        if (resp.statusCode && resp.statusCode >= 400) {
+          reject(new Error('Bad status code: ' + resp.statusCode));
+          resp.resume();
+          return;
+        }
+        resp.setEncoding('utf8');
+        let responseData = '';
+        resp.on('data', (chunk) => (responseData += chunk));
+        resp.on('end', () => {
+          try {
+            const jsonData = JSON.parse(responseData);
+            resolve(jsonData);
+          } catch (e) {
+            reject(new Error('Failed to parse JSON response'));
+          }
+        });
+      })
+      .on('error', reject);
+
+    req.write(postData);
     req.end();
   });
 }
@@ -322,6 +301,8 @@ export function postRemoteWithAuth(url: string, data: string): Promise<string> {
 export const internal = {
   fetchRemote,
   fetchRemoteBinary,
+  fetchRemoteJson,
+  postRemoteJson,
   fetchRemoteWithAuth,
   postRemoteWithAuth,
   extractFirstScript,

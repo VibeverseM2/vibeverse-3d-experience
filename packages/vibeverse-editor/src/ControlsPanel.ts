@@ -1,6 +1,19 @@
+import { 
+  Scene, 
+  PerspectiveCamera, 
+  WebGLRenderer, 
+  DirectionalLight, 
+  AmbientLight, 
+  Box3, 
+  Vector3,
+  Group,
+  Object3D
+} from "three";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+
 export interface ControlsPanelConfig {
   onEditExisting: () => void;
-  onCreateDocument: (url: string) => void;
+  onCreateDocument: (mmlUrl: string) => void;
   onRemoveDocument: (docState: any) => void;
   onSelectDocument: (frame: any) => void;
   documentStates: { [key: string]: any };
@@ -19,16 +32,14 @@ export class ControlsPanel {
   private existingDocumentsPanel: HTMLDivElement;
   private mutationObserver: MutationObserver;
 
-  // Built-in GLB URLs - moved from MMLEditingMode (fallback/default)
-  private readonly defaultGlbs = [
-    { url: "http://localhost:8080/assets/models/hat.glb", name: "Hat" },
-    { url: "http://localhost:8080/assets/models/duck.glb", name: "Duck" },
-    { url: "http://localhost:8080/assets/models/bot.glb", name: "Bot" }
-  ];
-
-  private availableGlbs: Array<{ url: string; name: string }> = [...this.defaultGlbs];
-  private filteredGlbs = [...this.availableGlbs];
+  private availableModels: Array<{ name: string; id: string }> = [];
+  private filteredModels = [...this.availableModels];
   private searchTimeout: NodeJS.Timeout | null = null;
+  
+  // GLB thumbnail rendering
+  private gltfLoader = new GLTFLoader();
+  private thumbnailCache = new Map<string, string>(); // url -> base64 image data
+  private loadingThumbnails = new Set<string>(); // track which thumbnails are loading
 
   constructor(private config: ControlsPanelConfig) {
     this.createControlsPanel();
@@ -145,8 +156,8 @@ export class ControlsPanel {
     // Create modal for existing documents
     this.createExistingDocumentsModal();
 
-    // Initial render of GLBs
-    this.renderGlbGrid();
+    // Initial render of models
+    this.renderModelGrid();
 
     document.body.appendChild(this.controlsPanel);
   }
@@ -160,32 +171,37 @@ export class ControlsPanel {
     });
   }
 
-  // Simulate API call to fetch GLB models
-  private async fetchGlbsFromApi(searchTerm: string): Promise<Array<{ url: string; name: string }>> {
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 300));
-    
-    // Simulate API response - for now, just filter the default models
-    // In the future, this would make an actual HTTP request
-    const allModels = [
-      ...this.defaultGlbs,
-      // Simulate additional models from API
-      { url: "http://localhost:8080/assets/models/tree.glb", name: "Tree" },
-      { url: "http://localhost:8080/assets/models/car.glb", name: "Car" },
-      { url: "http://localhost:8080/assets/models/house.glb", name: "House" },
-      { url: "http://localhost:8080/assets/models/chair.glb", name: "Chair" },
-      { url: "http://localhost:8080/assets/models/table.glb", name: "Table" },
-    ];
-
-    // Filter based on search term
+  // API call to fetch models from vibeverse server (which proxies mash.space)
+  private async fetchModelsFromApi(searchTerm: string): Promise<Array<{ name: string; id: string }>> {
+    // If no search term provided, return empty array
     if (!searchTerm.trim()) {
-      return this.defaultGlbs; // Return only default models when no search
+      return [];
     }
 
-    return allModels.filter(glb =>
-      glb.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      glb.url.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    try {
+      // Search for objects using the vibeverse server search endpoint
+      const searchResponse = await fetch(`http://localhost:3000/search?q=${encodeURIComponent(searchTerm)}`);
+
+      if (!searchResponse.ok) {
+        throw new Error(`Search API failed: ${searchResponse.status}`);
+      }
+
+      const searchResults = await searchResponse.json();
+      
+      // The server now returns an array of objects with name and id
+      if (!Array.isArray(searchResults)) {
+        console.warn('Search results is not an array:', searchResults);
+        return [];
+      }
+
+      // Return the search results directly
+      return searchResults;
+
+    } catch (error) {
+      console.error('Error fetching models from API:', error);
+      // Return empty array on error
+      return [];
+    }
   }
 
   private handleSearch(): void {
@@ -196,22 +212,30 @@ export class ControlsPanel {
 
     // Debounce the search to avoid too many API calls
     this.searchTimeout = setTimeout(async () => {
-      const searchTerm = this.searchInput.value;
+      const searchTerm = this.searchInput.value.trim();
       
       try {
-        // Show loading state
-        this.showLoadingState();
+        // Show loading state only if we have a search term
+        if (searchTerm) {
+          this.showLoadingState();
+        }
         
         // Fetch from API
-        this.availableGlbs = await this.fetchGlbsFromApi(searchTerm);
-        this.filteredGlbs = [...this.availableGlbs];
+        this.availableModels = await this.fetchModelsFromApi(searchTerm);
+        this.filteredModels = [...this.availableModels];
         
         // Update the grid
-        this.renderGlbGrid();
+        this.renderModelGrid();
+        
+        // Show message if no results found for search term
+        if (searchTerm && this.filteredModels.length === 0) {
+          this.showNoResultsMessage(searchTerm);
+        }
       } catch (error) {
         console.error('Failed to fetch GLBs:', error);
         // Fallback to local filtering on error
-        this.filterGlbsLocally();
+        this.filterModelsLocally();
+        this.showErrorMessage();
       }
     }, 500); // 500ms debounce
   }
@@ -228,19 +252,163 @@ export class ControlsPanel {
     this.glbGrid.appendChild(loadingDiv);
   }
 
-  private filterGlbsLocally(): void {
-    const searchTerm = this.searchInput.value.toLowerCase();
-    this.filteredGlbs = this.availableGlbs.filter(glb =>
-      glb.name.toLowerCase().includes(searchTerm) ||
-      glb.url.toLowerCase().includes(searchTerm)
-    );
-    this.renderGlbGrid();
+  private showNoResultsMessage(searchTerm: string): void {
+    // Add a message after the default models if no search results were found
+    const noResultsDiv = document.createElement("div");
+    noResultsDiv.textContent = `No additional results found for "${searchTerm}"`;
+    noResultsDiv.style.gridColumn = "1 / -1";
+    noResultsDiv.style.textAlign = "center";
+    noResultsDiv.style.padding = "10px";
+    noResultsDiv.style.color = "#888";
+    noResultsDiv.style.fontStyle = "italic";
+    noResultsDiv.style.backgroundColor = "#444";
+    noResultsDiv.style.borderRadius = "4px";
+    noResultsDiv.style.marginTop = "10px";
+    this.glbGrid.appendChild(noResultsDiv);
   }
 
-  private renderGlbGrid(): void {
+  private showErrorMessage(): void {
+    const errorDiv = document.createElement("div");
+    errorDiv.textContent = "Error searching for models. Showing default models.";
+    errorDiv.style.gridColumn = "1 / -1";
+    errorDiv.style.textAlign = "center";
+    errorDiv.style.padding = "10px";
+    errorDiv.style.color = "#ff6b6b";
+    errorDiv.style.backgroundColor = "#444";
+    errorDiv.style.borderRadius = "4px";
+    errorDiv.style.marginTop = "10px";
+    this.glbGrid.appendChild(errorDiv);
+  }
+
+  private filterModelsLocally(): void {
+    const searchTerm = this.searchInput.value.toLowerCase();
+    this.filteredModels = this.availableModels.filter(model =>
+      model.name.toLowerCase().includes(searchTerm)
+    );
+    this.renderModelGrid();
+  }
+
+  private async generateModelThumbnail(model: { name: string; id: string }): Promise<string> {
+    const cacheKey = model.id;
+    
+    // Check cache first
+    if (this.thumbnailCache.has(cacheKey)) {
+      return this.thumbnailCache.get(cacheKey)!;
+    }
+
+    // Check if already loading
+    if (this.loadingThumbnails.has(cacheKey)) {
+      // Wait for it to finish loading
+      return new Promise((resolve) => {
+        const checkInterval = setInterval(() => {
+          if (this.thumbnailCache.has(cacheKey)) {
+            clearInterval(checkInterval);
+            resolve(this.thumbnailCache.get(cacheKey)!);
+          }
+        }, 100);
+      });
+    }
+
+    this.loadingThumbnails.add(cacheKey);
+
+    try {
+      // Use object ID route to get GLB
+      const glbUrl = `http://localhost:3000/objects/${model.id}/glb`;
+      
+      // Load the GLB model
+      const gltf = await this.gltfLoader.loadAsync(glbUrl);
+      const modelScene = gltf.scene;
+
+      // Create a scene for thumbnail rendering
+      const scene = new Scene();
+      const camera = new PerspectiveCamera(45, 1, 0.1, 1000);
+      
+      // Add lighting
+      const ambientLight = new AmbientLight(0xffffff, 0.6);
+      scene.add(ambientLight);
+      
+      const directionalLight = new DirectionalLight(0xffffff, 0.8);
+      directionalLight.position.set(1, 1, 1);
+      scene.add(directionalLight);
+
+      // Add model to scene and center it
+      scene.add(modelScene);
+      
+      // Calculate bounding box and position camera
+      const box = new Box3().setFromObject(modelScene);
+      const center = box.getCenter(new Vector3());
+      const size = box.getSize(new Vector3());
+      const maxDimension = Math.max(size.x, size.y, size.z);
+      
+      // Position camera to see the whole model
+      camera.position.copy(center);
+      camera.position.x += maxDimension * 1.5;
+      camera.position.y += maxDimension * 0.5;
+      camera.position.z += maxDimension * 1.5;
+      camera.lookAt(center);
+
+      // Create a small renderer for thumbnail
+      const canvas = document.createElement('canvas');
+      canvas.width = 128;
+      canvas.height = 128;
+      
+      const renderer = new WebGLRenderer({ 
+        canvas, 
+        antialias: true, 
+        alpha: true,
+        preserveDrawingBuffer: true 
+      });
+      renderer.setSize(128, 128);
+      renderer.setClearColor(0x000000, 0); // Transparent background
+
+      // Render the scene
+      renderer.render(scene, camera);
+
+      // Convert to base64
+      const thumbnailData = canvas.toDataURL('image/png');
+      
+      // Cache the result
+      this.thumbnailCache.set(cacheKey, thumbnailData);
+      
+      // Cleanup
+      renderer.dispose();
+      scene.clear();
+
+      return thumbnailData;
+    } catch (error) {
+      console.error('Failed to generate thumbnail for', model.name, error);
+      // Return a placeholder or empty string
+      const placeholder = 'data:image/svg+xml;base64,' + btoa(`
+        <svg width="128" height="128" xmlns="http://www.w3.org/2000/svg">
+          <rect width="128" height="128" fill="#333"/>
+          <text x="64" y="64" text-anchor="middle" dy=".3em" fill="#999" font-size="12">Model</text>
+        </svg>
+      `);
+      this.thumbnailCache.set(cacheKey, placeholder);
+      return placeholder;
+    } finally {
+      this.loadingThumbnails.delete(cacheKey);
+    }
+  }
+
+  private renderModelGrid(): void {
     this.glbGrid.innerHTML = "";
     
-    for (const glb of this.filteredGlbs) {
+    // Show search prompt if no models available
+    if (this.filteredModels.length === 0) {
+      const promptDiv = document.createElement("div");
+      promptDiv.textContent = "Search for 3D models to add to your world";
+      promptDiv.style.gridColumn = "1 / -1";
+      promptDiv.style.textAlign = "center";
+      promptDiv.style.padding = "40px 20px";
+      promptDiv.style.color = "#888";
+      promptDiv.style.fontStyle = "italic";
+      promptDiv.style.fontSize = "16px";
+      this.glbGrid.appendChild(promptDiv);
+      return;
+    }
+    
+    for (const model of this.filteredModels) {
       const glbSquare = document.createElement("div");
       glbSquare.style.width = "60px";
       glbSquare.style.height = "60px";
@@ -254,38 +422,74 @@ export class ControlsPanel {
       glbSquare.style.transition = "all 0.2s ease";
       glbSquare.style.position = "relative";
       glbSquare.style.padding = "4px";
+      glbSquare.style.overflow = "hidden";
 
-      // Model name
+      // Model preview image (background)
+      const previewImg = document.createElement("img");
+      previewImg.style.position = "absolute";
+      previewImg.style.top = "0";
+      previewImg.style.left = "0";
+      previewImg.style.width = "100%";
+      previewImg.style.height = "100%";
+      previewImg.style.objectFit = "cover";
+      previewImg.style.borderRadius = "4px";
+      previewImg.style.opacity = "0.8";
+      previewImg.style.zIndex = "1";
+
+      // Loading placeholder
+      previewImg.src = 'data:image/svg+xml;base64,' + btoa(`
+        <svg width="60" height="60" xmlns="http://www.w3.org/2000/svg">
+          <rect width="60" height="60" fill="#666"/>
+          <text x="30" y="30" text-anchor="middle" dy=".3em" fill="#999" font-size="8">Loading...</text>
+        </svg>
+      `);
+
+      glbSquare.appendChild(previewImg);
+
+      // Model name overlay
       const nameLabel = document.createElement("div");
-      nameLabel.textContent = glb.name;
+      nameLabel.textContent = model.name;
       nameLabel.style.fontSize = "9px";
       nameLabel.style.textAlign = "left";
       nameLabel.style.color = "white";
       nameLabel.style.fontWeight = "bold";
-      nameLabel.style.textShadow = "1px 1px 2px rgba(0,0,0,0.7)";
+      nameLabel.style.textShadow = "1px 1px 2px rgba(0,0,0,0.9)";
       nameLabel.style.wordBreak = "break-word";
       nameLabel.style.lineHeight = "1.1";
       nameLabel.style.position = "absolute";
       nameLabel.style.top = "4px";
       nameLabel.style.left = "4px";
       nameLabel.style.maxWidth = "calc(100% - 8px)";
+      nameLabel.style.zIndex = "2";
+      nameLabel.style.backgroundColor = "rgba(0,0,0,0.7)";
+      nameLabel.style.padding = "1px 3px";
+      nameLabel.style.borderRadius = "2px";
       glbSquare.appendChild(nameLabel);
+
+      // Generate thumbnail asynchronously
+      this.generateModelThumbnail(model).then((thumbnailData: string) => {
+        previewImg.src = thumbnailData;
+      }).catch((error: any) => {
+        console.error('Failed to load thumbnail for', model.name, error);
+      });
 
       // Hover effects
       glbSquare.addEventListener("mouseenter", () => {
-        glbSquare.style.backgroundColor = "#666";
         glbSquare.style.borderColor = "#007acc";
         glbSquare.style.transform = "scale(1.05)";
+        previewImg.style.opacity = "1";
       });
 
       glbSquare.addEventListener("mouseleave", () => {
-        glbSquare.style.backgroundColor = "#555";
         glbSquare.style.borderColor = "#777";
         glbSquare.style.transform = "scale(1)";
+        previewImg.style.opacity = "0.8";
       });
 
       glbSquare.addEventListener("click", () => {
-        this.config.onCreateDocument(glb.url);
+        // Create MML URL from model ID
+        const mmlUrl = `http://localhost:3000/objects/${model.id}/mml`;
+        this.config.onCreateDocument(mmlUrl);
       });
 
       this.glbGrid.appendChild(glbSquare);
@@ -456,6 +660,10 @@ export class ControlsPanel {
       clearTimeout(this.searchTimeout);
       this.searchTimeout = null;
     }
+    
+    // Clear thumbnail cache
+    this.thumbnailCache.clear();
+    this.loadingThumbnails.clear();
     
     if (this.controlsPanel.parentNode) {
       this.controlsPanel.parentNode.removeChild(this.controlsPanel);

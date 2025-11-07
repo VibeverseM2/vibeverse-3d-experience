@@ -55,8 +55,8 @@ export class MMLEditingMode {
       onEditExisting: () => {
         this.placer.toggleEditMode();
       },
-      onCreateDocument: (url: string) => {
-        this.setGhostUrl(`http://localhost:3000/world/test/object/${encodeURIComponent(url)}/mml`);
+      onCreateDocument: (mmlUrl: string) => {
+        this.setGhostUrl(mmlUrl);
       },
       onRemoveDocument: (docState: MMLDocumentState) => {
         this.config.onRemove(docState);
