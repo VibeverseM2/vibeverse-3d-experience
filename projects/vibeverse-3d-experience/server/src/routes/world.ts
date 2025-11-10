@@ -81,10 +81,30 @@ function translateConfig(initialConfig: any): any {
   return {
     worldId: initialConfig.name,
     enableChat: initialConfig.chatConfiguration.enabled,
+    animationConfig: {
+      airAnimationFileUrl: "/assets/models/anim_air.glb",
+      idleAnimationFileUrl: "/assets/models/anim_idle.glb",
+      jogAnimationFileUrl: "/assets/models/anim_jog.glb",
+      sprintAnimationFileUrl: "/assets/models/anim_run.glb",
+      doubleJumpAnimationFileUrl: "/assets/models/anim_double_jump.glb",
+    },
     mmlDocuments: initialConfig.mmlDocumentsConfiguration.mmlDocuments,
-    environmentConfiguration: initialConfig.environmentConfiguration,
+    environmentConfiguration: {
+      ...initialConfig.environmentConfiguration,
+      skybox: {
+        hdrJpgUrl: "/assets/hdr/puresky_2k.jpg",
+      },
+    },
     spawnConfiguration: initialConfig.spawnConfiguration,
-    avatarConfiguration: initialConfig.avatarConfiguration,
+    avatarConfiguration: {
+      ...initialConfig.avatarConfiguration,
+      availableAvatars: [
+        {
+          name: "bot",
+          meshFileUrl: "/assets/models/bot.glb",
+        },
+      ], 
+    },
   };
 }
 

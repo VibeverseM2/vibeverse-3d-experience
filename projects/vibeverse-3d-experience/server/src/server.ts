@@ -20,6 +20,10 @@ app.use(express.urlencoded({ extended: true }));
 const clientBuildPath = path.join(__dirname, '../../client/build');
 app.use('/web-client', express.static(clientBuildPath));
 
+// Static route for assets
+const assetsPath = path.join(__dirname, '../assets');
+app.use('/assets', express.static(assetsPath));
+
 app.use('/admin', adminRouter);
 app.use('/world', worldRouter);
 app.use('/objects', objectRouter);
