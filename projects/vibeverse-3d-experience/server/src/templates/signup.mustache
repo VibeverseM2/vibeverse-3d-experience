@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>VibeVerse</title>
+</head>
+<body>
+    <h1>Create Your VibeVerse Account</h1>
+    
+    {{#error}}
+    <div style="color: red; margin: 10px 0;">{{error}}</div>
+    {{/error}}
+    
+    <form action="/signup" method="POST">
+        <div style="margin: 10px 0;">
+            <label for="email">Email Address:</label><br>
+            <input type="email" id="email" name="email" required style="width: 300px; padding: 5px;">
+        </div>
+        
+        <div style="margin: 10px 0;">
+            <label for="password">Password:</label><br>
+            <input type="password" id="password" name="password" required style="width: 300px; padding: 5px;">
+        </div>
+        
+        <div style="margin: 10px 0;">
+            <label for="confirmPassword">Confirm Password:</label><br>
+            <input type="password" id="confirmPassword" name="confirmPassword" required style="width: 300px; padding: 5px;">
+        </div>
+        
+        <div style="margin: 10px 0;">
+            <label for="worldName">World Name:</label><br>
+            <input type="text" id="worldName" name="worldName" required pattern="[a-z0-9-]+" 
+                   placeholder="my-awesome-world" style="width: 300px; padding: 5px;">
+            <br><small>Lowercase letters, numbers, and dashes only. No spaces.</small>
+        </div>
+        
+        <div style="margin: 20px 0;">
+            <button type="submit" style="padding: 10px 20px;">Create Account & World</button>
+        </div>
+    </form>
+    
+    <p><a href="/">Back to home</a></p>
+</body>
+</html>

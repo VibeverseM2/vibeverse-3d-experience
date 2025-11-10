@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>VibeVerse</title>
+</head>
+<body>
+    <h1>Welcome to VibeVerse</h1>
+    
+    {{#loggedIn}}
+    <p>Welcome back! <a href="/home">Go to your dashboard</a></p>
+    {{/loggedIn}}
+    
+    {{^loggedIn}}
+    <h2>Get Started</h2>
+    <p><a href="/signup">Sign up to VibeVerse</a></p>
+    <p>Already have an account? <a href="/signin">Sign in</a></p>
+    {{/loggedIn}}
+</body>
+</html>

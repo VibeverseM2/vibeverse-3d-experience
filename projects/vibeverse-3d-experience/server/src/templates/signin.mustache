@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>VibeVerse</title>
+</head>
+<body>
+    <h1>Sign In to VibeVerse</h1>
+    
+    {{#error}}
+    <div style="color: red; margin: 10px 0;">{{error}}</div>
+    {{/error}}
+    
+    <form action="/signin" method="POST">
+        <div style="margin: 10px 0;">
+            <label for="email">Email Address:</label><br>
+            <input type="email" id="email" name="email" required style="width: 300px; padding: 5px;">
+        </div>
+        
+        <div style="margin: 10px 0;">
+            <label for="password">Password:</label><br>
+            <input type="password" id="password" name="password" required style="width: 300px; padding: 5px;">
+        </div>
+        
+        <div style="margin: 20px 0;">
+            <button type="submit" style="padding: 10px 20px;">Sign In</button>
+        </div>
+    </form>
+    
+    <p><a href="/signup">Don't have an account? Sign up</a></p>
+    <p><a href="/">Back to home</a></p>
+</body>
+</html>

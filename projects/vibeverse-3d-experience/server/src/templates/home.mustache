@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>VibeVerse</title>
+</head>
+<body>
+    <h1>VibeVerse Dashboard</h1>
+    
+    <h2>Your World</h2>
+    {{#worldId}}
+    <p><strong>World URL:</strong> <a href="http://localhost:3000/world/{{worldId}}/web" target="_blank">http://localhost:3000/world/{{worldId}}/web</a></p>
+    {{/worldId}}
+    {{^worldId}}
+    <p>No world created yet.</p>
+    {{/worldId}}
+    
+    <h2>Subscription Status</h2>
+    {{#subscribed}}
+    <p style="color: green;">Subscription active.</p>
+    {{/subscribed}}
+    {{^subscribed}}
+    <p style="color: orange;">No active subscription.</p>
+    <p><a href="/subscribe">Subscribe</a></p>
+    {{/subscribed}}
+    
+    <h2>Account Details</h2>
+    <p><strong>Email:</strong> {{email}}</p>
+    
+    <div style="margin-top: 30px;">
+        <a href="/signout">Sign Out</a>
+    </div>
+</body>
+</html>

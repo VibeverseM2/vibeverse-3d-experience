@@ -1,0 +1,37 @@
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: vibeverse
+      POSTGRES_USER: vibeverse
+      POSTGRES_PASSWORD: vibeverse_dev_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vibeverse"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  server:
+    build:
+      context: ..
+      dockerfile: server/Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://vibeverse:vibeverse_dev_password@postgres:5432/vibeverse
+      SESSION_SECRET: your-session-secret-change-in-production
+      MSQUARED_WEBWORLDS_PROJECT: ${MSQUARED_WEBWORLDS_PROJECT}
+      MSQUARED_WEBWORLDS_API_BASE: ${MSQUARED_WEBWORLDS_API_BASE}
+      MSQUARED_WEBWORLDS_API_KEY: ${MSQUARED_WEBWORLDS_API_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
