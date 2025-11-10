@@ -152,8 +152,16 @@ userRouter.post('/signin', async (req: Request, res: Response) => {
       return res.redirect('/signin?error=Invalid email or password');
     }
     
+    // Set session and save explicitly
     req.session.userId = user.id;
-    res.redirect('/home');
+    req.session.save((err) => {
+      if (err) {
+        console.error('Session save error:', err);
+        return res.redirect('/signin?error=Session error. Please try again.');
+      }
+      console.log('User signed in successfully:', { userId: user.id, sessionId: req.sessionID });
+      res.redirect('/home');
+    });
   } catch (error) {
     console.error('Signin error:', error);
     res.redirect('/signin?error=An error occurred. Please try again.');
@@ -162,16 +170,27 @@ userRouter.post('/signin', async (req: Request, res: Response) => {
 
 // Home page for logged in users
 userRouter.get('/home', async (req: Request, res: Response) => {
+  console.log('Home page accessed:', { 
+    sessionId: req.sessionID, 
+    userId: req.session.userId,
+    hasSession: !!req.session,
+    sessionKeys: Object.keys(req.session || {})
+  });
+  
   if (!req.session.userId) {
+    console.log('No userId in session, redirecting to signin');
     return res.redirect('/signin');
   }
   
   try {
     const user = await UserModel.findById(req.session.userId);
     if (!user) {
+      console.log('User not found in database, clearing session');
       req.session.userId = undefined;
       return res.redirect('/signin');
     }
+    
+    console.log('User found, rendering home page:', { userId: user.id, email: user.email });
     
     const data = {
       email: user.email,
