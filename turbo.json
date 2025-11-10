@@ -5,7 +5,15 @@
     "build": {
       "dependsOn": ["^build"],
       "outputs": ["build/**"],
-      "inputs": ["$TURBO_DEFAULT$", "projects/vibeverse-3d-experience/server/.env"]
+      "env": [
+        "SESSION_SECRET",
+        "MSQUARED_WEBWORLDS_PROJECT",
+        "MSQUARED_WEBWORLDS_API_BASE",
+        "MSQUARED_WEBWORLDS_API_KEY",
+        "DATABASE_URL",
+        "NODE_ENV",
+        "PORT"
+      ]
     },
     "pre:build": {
       "dependsOn": ["^pre:build"],
