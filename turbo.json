@@ -1,9 +1,11 @@
 {
   "$schema": "https://turbo.build/schema.json",
+  "globalDependencies": [".env"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["build/**"]
+      "outputs": ["build/**"],
+      "inputs": ["$TURBO_DEFAULT$", "projects/vibeverse-3d-experience/server/.env"]
     },
     "pre:build": {
       "dependsOn": ["^pre:build"],
