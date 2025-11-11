@@ -881,7 +881,7 @@ export class Networked3dWebExperienceClient {
     try {
       const mmlDocs = Object.entries(this.mmlDocumentStates).map(([key, state]) => state.config);
       console.log("Saving MML documents to server:", mmlDocs);
-      const response = await fetch(`http://localhost:3000/world/${worldId}/objects`, {
+      const response = await fetch(`/world/${worldId}/objects`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

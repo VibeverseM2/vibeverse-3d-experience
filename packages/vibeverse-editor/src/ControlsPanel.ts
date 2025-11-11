@@ -180,7 +180,7 @@ export class ControlsPanel {
 
     try {
       // Search for objects using the vibeverse server search endpoint
-      const searchResponse = await fetch(`http://localhost:3000/search?q=${encodeURIComponent(searchTerm)}`);
+      const searchResponse = await fetch(`/search?q=${encodeURIComponent(searchTerm)}`);
 
       if (!searchResponse.ok) {
         throw new Error(`Search API failed: ${searchResponse.status}`);
@@ -313,7 +313,7 @@ export class ControlsPanel {
 
     try {
       // Use object ID route to get GLB
-      const glbUrl = `http://localhost:3000/objects/${model.id}/glb`;
+      const glbUrl = `/objects/${model.id}/glb`;
       
       // Load the GLB model
       const gltf = await this.gltfLoader.loadAsync(glbUrl);
@@ -488,7 +488,7 @@ export class ControlsPanel {
 
       glbSquare.addEventListener("click", () => {
         // Create MML URL from model ID
-        const mmlUrl = `http://localhost:3000/objects/${model.id}/mml`;
+        const mmlUrl = `/objects/${model.id}/mml`;
         this.config.onCreateDocument(mmlUrl);
       });
 

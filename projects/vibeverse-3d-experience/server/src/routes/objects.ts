@@ -16,7 +16,7 @@ objectRouter.get('/:objectId/mml', async (req: Request, res: Response) => {
     const { objectId } = req.params;
 
     // Return the GLB URL using object ID
-    const glbUrl = `http://localhost:3000/objects/${objectId}/glb`;
+    const glbUrl = `/objects/${objectId}/glb`;
 
     const mmlContent = `<m-model src="${glbUrl}"></m-model>`;
 

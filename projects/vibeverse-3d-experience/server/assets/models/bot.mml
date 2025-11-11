@@ -1,1 +1,1 @@
-<m-model src="http://localhost:3000/assets/models/bot.glb"></m-model>
+<m-model src="/assets/models/bot.glb"></m-model>
