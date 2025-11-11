@@ -49,7 +49,7 @@ app.use(session({
 
 // Static route for web client build files
 const clientBuildPath = process.env.NODE_ENV === 'production' 
-  ? path.join(__dirname, '../dist/client/build')
+  ? path.join(__dirname, './client')
   : path.join(__dirname, '../client/build');
 
 // Debug logging for production
