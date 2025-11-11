@@ -312,8 +312,8 @@ export class ControlsPanel {
     this.loadingThumbnails.add(cacheKey);
 
     try {
-      // Use object ID route to get GLB
-      const glbUrl = `/objects/${model.id}/glb`;
+      // Use object ID route to get GLB with full host
+      const glbUrl = `${window.location.origin}/objects/${model.id}/glb`;
       
       // Load the GLB model
       const gltf = await this.gltfLoader.loadAsync(glbUrl);
@@ -487,8 +487,8 @@ export class ControlsPanel {
       });
 
       glbSquare.addEventListener("click", () => {
-        // Create MML URL from model ID
-        const mmlUrl = `/objects/${model.id}/mml`;
+        // Create MML URL from model ID with full host
+        const mmlUrl = `${window.location.origin}/objects/${model.id}/mml`;
         this.config.onCreateDocument(mmlUrl);
       });
 
