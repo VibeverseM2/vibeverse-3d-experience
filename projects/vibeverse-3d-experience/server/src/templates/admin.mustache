@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>VibeVerse Admin</title>
+</head>
+<body>
+    <h1>VibeVerse Admin</h1>
+    
+    <h2>Existing VibeVerses</h2>
+    <ul>
+        {{#worlds}}
+        <li><a href="/world/{{id}}/web">{{id}}</a></li>
+        {{/worlds}}
+        {{^worlds}}
+        <li>{{errorMessage}}</li>
+        {{/worlds}}
+    </ul>
+    
+    <h2>Create New VibeVerse</h2>
+    <form action="/admin/create" method="POST">
+        <label for="worldName">World Name:</label>
+        <input type="text" id="worldName" name="name" required>
+        <button type="submit">Create</button>
+    </form>
+</body>
+</html>

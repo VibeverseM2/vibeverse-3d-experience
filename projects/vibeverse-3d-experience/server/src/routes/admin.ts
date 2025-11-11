@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { postRemoteWithAuth, fetchRemoteWithAuth } from '../helpers/api';
+import { renderTemplate } from '../helpers/templates';
 
 export const adminRouter = Router();
 
@@ -10,7 +11,7 @@ const MSQUARED_WEBWORLDS_API_KEY = process.env.MSQUARED_WEBWORLDS_API_KEY || '';
 
 // GET /admin -> serves the admin HTML page
 adminRouter.get('/', async (req: Request, res: Response) => {
-  let worldsList = '';
+  let data: any = {};
   
   try {
     // Fetch worlds from API
@@ -19,39 +20,14 @@ adminRouter.get('/', async (req: Request, res: Response) => {
     
     const response = JSON.parse(responseData);
     if (response.worlds && Array.isArray(response.worlds)) {
-      worldsList = response.worlds
-        .map((world: any) => `<li><a href="http://localhost:3000/world/${world.id}/web">${world.id}</a></li>`)
-        .join('');
+      data.worlds = response.worlds;
     }
   } catch (error) {
     console.error('Failed to fetch worlds from API:', error);
-    worldsList = '<li>Failed to load worlds from API</li>';
+    data.errorMessage = 'Failed to load worlds from API';
   }
   
-  const html = `
-<!DOCTYPE html>
-<html>
-<head>
-    <title>VibeVerse Admin</title>
-</head>
-<body>
-    <h1>VibeVerse Admin</h1>
-    
-    <h2>Existing VibeVerses</h2>
-    <ul>
-        ${worldsList}
-    </ul>
-    
-    <h2>Create New VibeVerse</h2>
-    <form action="/admin/create" method="POST">
-        <label for="worldName">World Name:</label>
-        <input type="text" id="worldName" name="name" required>
-        <button type="submit">Create</button>
-    </form>
-</body>
-</html>
-  `;
-  
+  const html = renderTemplate('admin', data);
   res.setHeader('Content-Type', 'text/html');
   res.send(html);
 });
