@@ -5,7 +5,7 @@
   "type": "commonjs",
   "scripts": {
     "dev": "npx ts-node -r dotenv/config src/server.ts",
-    "build": "tsc -p tsconfig.json && cp -r src/templates dist/",
+    "build": "cd ../../.. && npm run build -w @projects/vibeverse-3d-experience-client && cd projects/vibeverse-3d-experience/server && tsc -p tsconfig.json && cp -r src/templates dist/ && cp -r ../client/build dist/client/",
     "start": "node -r dotenv/config dist/server.js",
     "test": "jest"
   },

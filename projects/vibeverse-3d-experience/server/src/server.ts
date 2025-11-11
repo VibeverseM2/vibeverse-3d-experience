@@ -48,7 +48,9 @@ app.use(session({
 }) as any);
 
 // Static route for web client build files
-const clientBuildPath = path.join(__dirname, '../client/build');
+const clientBuildPath = process.env.NODE_ENV === 'production' 
+  ? path.join(__dirname, './client/build')
+  : path.join(__dirname, '../client/build');
 app.use('/web-client', express.static(clientBuildPath));
 
 // Static route for assets
