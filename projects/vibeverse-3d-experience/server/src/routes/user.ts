@@ -3,6 +3,7 @@ import bcrypt from 'bcrypt';
 import { UserModel } from '../models/user';
 import { postRemoteWithAuth } from '../helpers/api';
 import { renderTemplate } from '../helpers/templates';
+import { getBaseUrl } from '../helpers/url';
 
 export const userRouter = Router();
 
@@ -196,7 +197,8 @@ userRouter.get('/home', async (req: Request, res: Response) => {
       email: user.email,
       worldId: user.world_id,
       subscribed: user.subscribed,
-      memberSince: user.created_at.toLocaleDateString()
+      memberSince: user.created_at.toLocaleDateString(),
+      baseUrl: getBaseUrl(req)
     };
     
     const html = renderTemplate('home', data);
