@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "npx ts-node -r dotenv/config src/server.ts",
     "build": "cd ../../.. && npm run build -w @projects/vibeverse-3d-experience-client && cd projects/vibeverse-3d-experience/server && tsc -p tsconfig.json && cp -r src/templates dist/ && cp -r ../client/build dist/client/",
-    "vercel-build": "cd ../../.. && npm install && npm run build && cd projects/vibeverse-3d-experience/server && tsc -p tsconfig.json && cp -r src/templates dist/ && cp -r ../client/build dist/client/",
+    "vercel-build": "cd ../../.. && npm install && npm run build -w @mml-io/3d-web-client-core && npm run build -w @mml-io/3d-web-user-networking && npm run build -w @mml-io/vibeverse-editor && npm run build -w @mml-io/3d-web-experience-client && npm run build -w @projects/vibeverse-3d-experience-client && cd projects/vibeverse-3d-experience/server && tsc -p tsconfig.json && cp -r src/templates dist/ && cp -r ../client/build dist/client/",
     "start": "node -r dotenv/config dist/server.js",
     "test": "jest"
   },
