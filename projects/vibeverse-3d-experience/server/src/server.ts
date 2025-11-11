@@ -49,9 +49,47 @@ app.use(session({
 
 // Static route for web client build files
 const clientBuildPath = process.env.NODE_ENV === 'production' 
-  ? path.join(__dirname, './client/build')
+  ? path.join(__dirname, '../dist/client/build')
   : path.join(__dirname, '../client/build');
+
+// Debug logging for production
+if (process.env.NODE_ENV === 'production') {
+  console.log('__dirname:', __dirname);
+  console.log('Client build path:', clientBuildPath);
+  try {
+    const fs = require('fs');
+    console.log('Files in __dirname:', fs.readdirSync(__dirname));
+    if (fs.existsSync(path.join(__dirname, '../dist'))) {
+      console.log('Files in dist:', fs.readdirSync(path.join(__dirname, '../dist')));
+      if (fs.existsSync(path.join(__dirname, '../dist/client'))) {
+        console.log('Files in dist/client:', fs.readdirSync(path.join(__dirname, '../dist/client')));
+      }
+    }
+  } catch (e) {
+    console.log('Error checking files:', e instanceof Error ? e.message : String(e));
+  }
+}
+
 app.use('/web-client', express.static(clientBuildPath));
+
+// Debug route for production
+if (process.env.NODE_ENV === 'production') {
+  app.get('/debug-paths', (req, res) => {
+    const fs = require('fs');
+    try {
+      const info = {
+        __dirname,
+        clientBuildPath,
+        clientPathExists: fs.existsSync(clientBuildPath),
+        distExists: fs.existsSync(path.join(__dirname, '../dist')),
+        rootFiles: fs.readdirSync(path.join(__dirname, '..')),
+      };
+      res.json(info);
+    } catch (e) {
+      res.json({ error: e instanceof Error ? e.message : String(e) });
+    }
+  });
+}
 
 // Static route for assets
 const assetsPath = path.join(__dirname, '../assets');
